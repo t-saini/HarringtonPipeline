@@ -1,0 +1,2 @@
+Sample Tim had a green mold, 320 reads, and had 32% of the reads at position 23 had the mutation C
+Sample Jack had a red mold, 420 reads, and had 69% of the reads at position 24 had the mutation F
