@@ -1,43 +1,125 @@
-# HarringtonPipeline
-# Author: Tanvir Saini
+Sequence Alignment Pipeline
+Author: Tanvir Saini
 
-This pipeline automates the analysis of pooled sequencing data to discover variants and generate a comprehensive report. It takes as input a FASTQ file containing pooled sequencing data, a tabulated text file providing clinical information associated with each sample, and a FASTA file serving as the reference sequence. The workflow is orchestrated by the `pipeline.py` script, which efficiently processes the input data and generates a comprehensive report summarizing the findings.
+This pipeline automates the analysis of pooled sequencing data; including trimming reads, 
+aligning them to a reference genome, variant sequence analysis, and generating a report 
+summarizing the findings.The workflow is orchestrated by the pipeline.py script, 
+which takes in three input files: 
+a FASTQ file containing pooled sequencing data, a tabulated text file with clinical information, 
+and a FASTA file representing the reference sequence.
 
-## Workflow Overview:
+## Workflow Overview
 
-1. **Trim Reads**: Initial processing of the input FASTQ file to remove adapter sequences, low-quality bases, and other artifacts. This step enhances the quality of the sequencing data and improves downstream analysis accuracy.
+1.Data Preprocessing: Initial FASTQ file (hawkins_pooled_sequences.fastq) is processed to
+    have the leading barcode trimmed from the 5' end. While on the 3' end poor quality reads and
+    No calls (N) are removed when the QC string has two occuring instances of FF, FD, or DD.
+    The trimmed results are saved to a new FASTQ in the directory fastqs.
+2.Sequence Alignment: Aligns the trimmed FASTQ reads to the provided reference genome 
+    using BWA (Burrows-Wheeler Aligner). Successful alignments are stored in .SAM files
+    in the directory sam_files.
+3.SAM TO BAM File Convertion: Aligned SAM files are converted to BAM format, sorts them, 
+    indexes them, and removes intermediate SAM files to conserve disk space. Successful
+    outputs are stored in the directory bams.
+4.Variant Discovery: Performs variant discovery by analyzing the pileup of reads at each position 
+    in the aligned BAM files. It identifies mutations, calculates their frequencies, and determines 
+    their positions.
+5.Report Generation: A report summarizing variant discovery results with the default name "report.txt".
 
-2. **Align to Reference Genome**: The trimmed reads are aligned to a reference genome using the Burrows-Wheeler Aligner (BWA). This step ensures that the sequencing reads are correctly mapped to the reference sequence, enabling further analysis.
+## Files Overview:
 
-3. **SAM to BAM Conversion**: The aligned reads are initially stored in the SAM format, which is then converted into the more efficient and indexed BAM format. This conversion simplifies data storage and facilitates faster data retrieval for subsequent analysis steps.
+1.parseFastq.py
+Description: Python script for parsing FASTQ files, acts similarly to a generator function.
 
-4. **Variant Discovery**: Analysis of the aligned reads to identify genetic variants, such as single nucleotide polymorphisms (SNPs). This step involves comparing the aligned reads to the reference genome to detect variations and assess their frequency within the sample population.
+2.trim_reads.py
+Description: Python script for trimming DNA barcodes from the FASTQ sequences, and trims 
+    the FASTQ based on the QC string. Outputs are stored in new FASTQ files using the following
+    convention "<patient name>.fastq" within the fastqs directory.
 
-5. **Variant Sequence Analysis**: Further analysis of detected variants to characterize their sequence context, assess their potential impact on gene function, and prioritize variants of clinical significance. This step aids in understanding the biological relevance of the identified variants and their implications for disease risk or treatment response.
+3.align_fastq.py
+Description: Python script that is indexed using the BASH variant of BWA. After which, 
+    the trimmed FASTQs are aligned using the BASH varaint of SAMtools and outputs a SAM file
+    with the following convention "<patient name>.sam" within the sam_files directory.
 
-6. **Generate Report**: Compilation of the variant analysis results, along with associated clinical information, into a structured report. This report provides a comprehensive summary of the detected variants, their frequency, genomic locations, and any relevant clinical annotations. It serves as a valuable resource for researchers, clinicians, and other stakeholders involved in genomic data interpretation and decision-making.
+4.sam_to_bam.py
+Description: Python script for converting SAM files to sorted.bam files. Intermediate files (.sam and .bam)
+    are deleted at the end of the convertion along with the sam_files directory. The final files will be named with the following convention
+    "<patient name>.sorted.bam" within the bam_files directory.
 
-## Input Files:
+5.variant_discovery.py
+Description: Python script that uses Pysam to analyze pileup data from a sorted and indexed BAM file.
+    The results are then compared against the reference sequence provided, and the nucleotide frequcies
+    are calculated. The output is a list containig the mutation reads, frequency of occurance, the position
+    of the mutation, and the mutated nucleotide.
 
-- **FASTQ File**: Contains the raw sequencing data obtained from the sample pool.
-  
-- **Tabulated Text File**: Provides clinical metadata associated with each sample, such as patient identifiers, clinical characteristics, and experimental conditions.
-  
-- **FASTA File**: Represents the reference genome or target genomic region against which the sequencing reads are aligned.
+6.generate_report.py
+Description: Python script that constructs a text based report from a dictionary input that contains
 
-## Usage:
+7.pipeline.py
+Description: Python script to orechestrate the execution of the other Python scripts and generates the final report.
 
-To run the pipeline, execute the `pipeline.py` script within the week5 directory.
+## Requirements
 
-```
-python3 pipeline.py "<input_fastq>" "<clinical_data_file>" "<reference_genome_fasta>"
-```
-If your input files are outside of the week5 directory, provide the full path.
+This project requires the following Python packages:
 
-```
-python3 pipeline.py "<path>/<to>/<your>/<input_fastq>" "<path>/<to>/<your>/<clinical_data_file>" "<path>/<to>/<your>/<reference_genome_fasta>"
-```
+- pandas
+- logging
+- pysam
+- shutil
+- sys 
+- os 
+- typing 
+- subprocess
 
-# Logging
+This project requires the following Python scripts:
 
-The pipeline script logs events and errors at different stages of the workflow to provide information about the progress and to capture any issues encountered during execution. Log messages are written to the terminal and can be helpful for troubleshooting and debugging purposes.
+- parseFastq from the directory necessary_scripts
+
+## How to Run
+
+Execute the following command in the terminal when inside the week5 directory using the provided files and the directory
+necessary_scripts must be present. Inputs such as pooled sequence FASTQs and tabulated clinical data text filesshould ideally be in the input directory. 
+The reference fasta for the genome of interest should be placed within the ref_genome directory. This is the default file structure.
+
+Example with provided files in the suggested directories:
+
+python3 pipeline.py "inputs/hawkins_pooled_sequences.fastq" "inputs/harrington_clinical_data.txt" "ref_genome/dgorgon_reference.fa"
+
+If your fastq file (`hawkins_pooled_sequenecs.fastq`), clincal data text file (`harrington_clincal_data.txt`), or 
+reference fasta (`dgorgon_reference.fa`) are located in a different set of directories, provide the full path to the files 
+when executing the command within the week5 directory. 
+
+For example:
+
+python3 pipeline.py "/path/to/your/hawkins_pooled_sequenecs.fastq" "/path/to/your/harrington_clincal_data.txt" "/path/to/your/dgorgon_reference.fa"
+
+## Input
+Pooled FASTQ(hawkins_pooled_sequenecs.fastq): FASTQ file with pooled sequences, with barcode sequences
+    that should coinside with the barcodes found in the associated Clincal Data File.
+
+Clinical Data File(harrington_clincal_data.txt): Must be a tab-delimited text file, the following
+    column names are required:
+    Name, Color, Barcode
+
+Reference Genome(dgorgon_reference.fa): A fasta file containing the genome of the refrence organism that the FASTQ
+    files will be aligned to.
+
+
+## Logging
+
+The pipeline script logs events and errors at different stages of the workflow to provide information about the progress 
+and to capture any issues encountered during execution. Log messages are written to the console and can be helpful for 
+troubleshooting and debugging purposes.
+
+Example:
+
+1. Incorrect key file extension:
+    [WARNING]- YYYY-MM-DD H:M:S ::: "Checking file extensions for the inputs given."
+    [WARNING]- YYYY-MM-DD H:M:S ::: "<path_to_file> does not have extension <required_extension>"
+
+2. Incorrect barcode provided in clinical data:
+    [WARNING]- YYYY-MM-DD H:M:S ::: "Could not find barcode! Index was : <barcode>"
+    [WARNING]- YYYY-MM-DD H:M:S ::: "Exiting with error code 1."
+
+3. subprocess.CalledProcessError when running samtools via subprocess:
+    [ERROR]- YYYY-MM-DD H:M:S ::: Failed to create an alignment with <sam_file> and <reference_genome>
+    [WARNING]- YYYY-MM-DD H:M:S ::: "<subprocess.CallProcessError>"

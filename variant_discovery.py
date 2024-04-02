@@ -1,4 +1,5 @@
 import pysam
+import logging
 
 def pileup(bamfile:str)->dict:
     #this function takes in a string that is a path
@@ -16,7 +17,6 @@ def pileup(bamfile:str)->dict:
     for pileupcolumn in samfile.pileup():
         #inform the user what the base is and what position we are currently looking at
         logging.info("coverage at base %s = %s" % (pileupcolumn.pos, pileupcolumn.n))
-        #DOUBLE CHECK THIS COMMENT!!!!!
         #pileupcolumn.pos is the position that is currently being looked at
         ntdict[pileupcolumn.pos] = {}
         for pileupread in pileupcolumn.pileups:
@@ -91,9 +91,3 @@ def detect_mut(ntdict:dict, reference:str)->list:
         true_position = pos + 1
     #return the number of mutant reads, frequency as an int, position, and mutant bp
     return [mutant_reads, frequency_occurance, true_position, mutant]
-
-
-if __name__=="__main__":
-    pos_ntfreq = pileup('','')
-    indexed = prep_reference()
-    result = detect_mut(pos_ntfreq, indexed)

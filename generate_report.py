@@ -1,20 +1,3 @@
-"""
-5. Create a report - Using python, create a report that outputs what nucleotide position and mutation is responsible for each color of the mold. Also print out the number of sequences that were used for each sample. 
-Example:
-
-Sample Tim had a green mold, 320 reads, and had 32% of the reads at position 23 had the mutation C. 
-Sample Kristen ...
-
-Final Deliverables.
-A single python script with comments that performs all of the above steps called pipeline.py
-A folder called fastqs that contains the demultiplexed fastqs for each sample.
-A folder called bams that contains the sorted.bam (and .bai files) file for each sample.
-A text file called report.txt that looks like step 5.
-A readme that tells the user how to use the script.
-"""
-
-#DOUBLE CHECK THE OUTPUTS BY COMPARING DICT VALUES!!!!
-
 #TEMPLATE contains the scaffold for the report readout. It is a
 #global variable because the contents are only ever referenced
 #and never edited.
@@ -61,8 +44,3 @@ def gen_report(contents: str,filename:str = 'report.txt')->None:
         #all items within in contents is written
         #to the text file report.txt
         report.write(contents)
-
-if __name__ == "__main__":
-    test_dict = {0:['Tim','green','320','32','23','C'],1:['Jack','red','420','69','24','F']}
-    stuff = gen_report_contents(test_dict)
-    gen_report(stuff,'test_output.txt')

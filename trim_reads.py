@@ -32,6 +32,7 @@ def trim_leading_barcode(barcode:str,sequence:str,qc_string:str)->Tuple[str,str]
     #something has gone wrong
     if barcode_index == -1 or barcode_index != 0:
         logging.warning(f"Could not find barcode! Index was : {barcode_index}")
+        logging.warning(f"Exiting with error code 1.")
         sys.exit(1)
     #the ending index of the barcode is calculated by
     #taking the length of the barcode and adding the starting
@@ -72,11 +73,11 @@ def trim_trailing_read(sequence:str,qc_string:str)->Tuple[str,str]:
 def generate_fastq(fastq_dict:dict)->None:
     #check to see if the direcotry trimmed_fastq exists
     #if it does, do nothing, if does not create the dir
-    logging.info("Looking for directory trimmed_fastq")
-    if os.path.exists('trimmed_fastq') is False:
-        logging.info('Did not find trimmed_fastq directory')
-        logging.info('Creating directory trimmed_fastq')
-        os.mkdir('trimmed_fastq')
+    logging.info("Looking for directory fastqs")
+    if os.path.exists('fastqs') is False:
+        logging.info('Did not find fastqs directory')
+        logging.info('Creating directory fastqs')
+        os.mkdir('fastqs')
     #the names of the patients are pulled from our fastq dict
     #and itterated, for ever name, a new file is created and
     #saved to the directory trimmed_fastq
@@ -85,7 +86,7 @@ def generate_fastq(fastq_dict:dict)->None:
         fastq_data = fastq_dict[name]
         fname = f"{name}_trimmed.fastq"
         logging.info(f"Writing {fname}")
-        with open(f'trimmed_fastq/{fname}','w') as file:
+        with open(f'fastqs/{fname}','w') as file:
             #because my dictionary is contains list of lists
             #the join method is able to turn the list into a string
             #and every , in the list is replaced with a new line

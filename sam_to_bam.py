@@ -9,7 +9,7 @@ import shutil
 #access if they ever need to be modified in the future
 #and the information here is refrenced frequently
 SAM_FILE_DEFAULT = 'sam_files'
-BAM_FILE_DEFAULT = 'bam_files'
+BAM_FILE_DEFAULT = 'bams'
 
 def fetch_sam(sam_dir:str=SAM_FILE_DEFAULT)->list:
     #function generates a list of file paths
@@ -65,7 +65,7 @@ def sort_bam_files(bam_dir:str=BAM_FILE_DEFAULT)->list:
     #this function takes a string path to the bam file directory
     #by default it points to the default directory bam_files
     sorted_bam_files = []
-    bam_files = [bam_dir+'/'+bam for bam in os.listdir(bam_dir) if bam.endswith('.bam')]
+    bam_files = [bam_dir+'/'+bam for bam in os.listdir(bam_dir) if bam.endswith('.bam') and '.sorted.bam' not in bam]
     #pull files from directory bam_files
     for bam_file in bam_files:
         #extract the patient name from within the sam file
@@ -122,8 +122,10 @@ def rm_sam_bam(sam_dir:str=SAM_FILE_DEFAULT,bam_dir:str=BAM_FILE_DEFAULT)->None:
     logging.info(f"Removing BAM files within {bam_dir}")
     bam_files = os.listdir(bam_dir)
     for bam_file in bam_files:
-        if bam_file.endswidth('.bam'):
-            #the extension .bam is explictly used
+        #If the currently selected bam file is not a .sorted.bam
+        #the path will be sssembled
+        if '.sorted.bam' not in bam_file:
+            #the extension sorted.bam is explictly used
             #in order to avoid deleting the sorted bam files
             bam_path = f'{bam_dir}/{bam_file}'
             try:
@@ -139,9 +141,3 @@ def rm_sam_bam(sam_dir:str=SAM_FILE_DEFAULT,bam_dir:str=BAM_FILE_DEFAULT)->None:
                 logging.error(f"An error occured while removing {bam_path}::\n{e}")
                 logging.warning("Exiting!!!")
                 sys.exit(1)
-
-if __name__ == "__main__":
-    sam_files = fetch_sam()
-    convert_to_bam(sam_files)
-    sorted_files = sort_bam_files()
-    index_bam_files(sorted_files)

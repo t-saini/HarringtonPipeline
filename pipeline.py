@@ -9,7 +9,6 @@ from sam_to_bam import (fetch_sam, convert_to_bam, sort_bam_files, index_bam_fil
 from variant_discovery import (pileup, prep_reference, detect_mut)
 from generate_report import (gen_report_contents, gen_report)
 
-
 def _run_trim_reads(parse_fastq,clinical_df:pd.DataFrame)->None:
     #this helper function orchestrates the workflow for trimming
     #the fastq reads
@@ -112,33 +111,42 @@ def _run_variant_discovery(bam_files:list, reference_genome:str,
     #we iterate through the array bam files and take note of the index
     #associated with the file that is selected
     for index, bam_file in enumerate(bam_files):
-        #a dictionary of basebair frequencies per positoin
-        #is generated when we pass our input bam file
-        bp_frequency = pileup(bam_file)
-        #the refrence sequence as a string is extracted from
-        #the reference fasta
-        reference = prep_reference(reference_genome)
-        #by bassing the dictionary bp_frequency and the string reference
-        #the the mutation positoin, mutation nucleotide, mutation reads, and mutation
-        #frequency is returned as a list.
-        variant_details = detect_mut(bp_frequency,reference)
-        #the basename of the file is extracted
-        #in order to generate the patient name that is
-        #associated with the given bam split 
-        basename = os.path.basename(bam_file)
-        patient_name = basename.split('.')[0]
-        #the patient name is then used to exctract the mold color from the
-        #clinical data frame, these values are then saved into the array
-        #additional_details
-        mold_color = clinical_df['Color'][clinical_df['Name']==patient_name].iloc[0]
-        #lower() is used to ensure that the molde color is in lowercase letters
-        additional_details = [patient_name, mold_color.lower()]
-        #by using the extend method additional details will have the
-        #elements from variant details tackt on to it.
-        additional_details.extend(variant_details)
-        #the index that was presented via enumerate is used here to associate
-        #the patient details into our dictionary variants discovered
-        variants_discovered[index] = additional_details
+        logging.info(f"Running variant analysis on {bam_file}")
+        try:
+            #a dictionary of basebair frequencies per positoin
+            #is generated when we pass our input bam file
+            bp_frequency = pileup(bam_file)
+            #the refrence sequence as a string is extracted from
+            #the reference fasta
+            reference = prep_reference(reference_genome)
+            #by bassing the dictionary bp_frequency and the string reference
+            #the the mutation positoin, mutation nucleotide, mutation reads, and mutation
+            #frequency is returned as a list.
+            variant_details = detect_mut(bp_frequency,reference)
+            #the basename of the file is extracted
+            #in order to generate the patient name that is
+            #associated with the given bam split 
+            basename = os.path.basename(bam_file)
+            patient_name = basename.split('.')[0]
+            #the patient name is then used to exctract the mold color from the
+            #clinical data frame, these values are then saved into the array
+            #additional_details
+            mold_color = clinical_df['Color'][clinical_df['Name']==patient_name].iloc[0]
+            #lower() is used to ensure that the molde color is in lowercase letters
+            additional_details = [patient_name, mold_color.lower()]
+            #by using the extend method additional details will have the
+            #elements from variant details tackt on to it.
+            additional_details.extend(variant_details)
+            #the index that was presented via enumerate is used here to associate
+            #the patient details into our dictionary variants discovered
+            variants_discovered[index] = additional_details
+        except Exception as e:
+            #the meat of the for loop is wrapped in a try and except
+            #for easier debugging. on Exception the user will be told
+            #what file caused the error and the workflow will exit
+            logging.error(f"Something went wrong while performing the analysis on {bam_file}!!!")
+            logging.waring("Exiting workflow!!!")
+            sys.exit(1)
     return variants_discovered
 
 def _run_generate_report(report_details:dict)->None:
@@ -158,14 +166,39 @@ def _run_generate_report(report_details:dict)->None:
     gen_report(report_contents)
 
 
+def _check_extensions(file1:str, file2:str, file3:str)->None:
+    #this helper function is used to check the fil ex
+    required_extentions = ['.fastq','.txt','.fa']
+    files_to_check = [file1,file2, file3]
+    logging.info("Checking file extensions for the inputs given.")
+    #iterate through the files that are provided and use the index
+    #to find the associated file extensions
+    for index, file_to_check in enumerate(files_to_check):
+        if not file_to_check.endswith(required_extentions[index]):
+            #if the extensions do not match give a warning and exit the workflow
+            logging.warning(f"{file_to_check} does not have extension {required_extentions[index]}")
+            logging.warning("Exiting out of the pipeline...")
+            sys.exit(1)
+    #otherwise inform the user and proceed forward
+    logging.info("All input files have the appropriate file extensions.")
+    logging.info("Moving forward with the pipeline.")
+
 
 def main():
-    #system arguments are captured and the files are
-    #opened using ParseFastQ and Pandas
+    #system arguments are captured and stored into
+    #individual variables
     arguments = sys.argv[1:]
-    parse_fastq = parseFastq.ParseFastQ(arguments[0])
-    clinical_df = pd.read_csv(arguments[1], sep='\t')
-    ref_genome = arguments[2]
+    input_fastq = arguments[0]
+    input_clinical_data = arguments[1]
+    input_reference_genome = arguments[2]
+    #the file extensions in the paths are checked
+    #if they are not the exepcted file extensions the workflow
+    #will error out with exit code 1
+    _check_extensions(input_fastq, input_clinical_data, input_reference_genome)
+    #the files are opened using ParseFastQ and Pandas
+    parse_fastq = parseFastq.ParseFastQ(input_fastq)
+    clinical_df = pd.read_csv(input_clinical_data, sep='\t')
+    ref_genome = input_reference_genome
     #main then orchestrates the order of opperations
     #using the helper functions
     logging.info("Trimming FASTQ Files...")
@@ -195,10 +228,13 @@ def main():
     #variant_details must a be a dictionary of lists.
     #the output by default will be report.txt
     _run_generate_report(variant_details)
+    logging.info("report.txt successfully written!")
 
 
 
 if __name__ == "__main__":
+    #logging basic config is used here to create
+    #the presentation of the logging messages
     logging.basicConfig(level=logging.INFO, 
     format='[%(levelname)s]-%(asctime)s:::%(message)s',
     datefmt='%Y-%m-%d %H:%M:%S')

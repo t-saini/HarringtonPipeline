@@ -6,7 +6,7 @@ import os
 #the default FASTQ directory is trimmed_fastq
 #this enhances readability and maintainability by providing 
 #a central reference point.
-FASTQ_DIR_DEFAULT = 'trimmed_fastq'
+FASTQ_DIR_DEFAULT = 'fastqs'
 SAM_DIR_DEFAULT = 'sam_files'
 
 def index_ref_genome(reference_genome: str)->None:
@@ -90,17 +90,9 @@ def execute_alignment(reference_genome:str, fastq_files:list, sam_dir:str=SAM_DI
         except subprocess.CalledProcessError as error:
             #the error will be displayed as part of the logger warning
             #and the script will exit
+            logging.error(f"Failed to create an alignment with {name}.sam and {reference_genome}")
             logging.warning(error)
             sys.exit(1)
     #otherwise the user is notified once all of the flies have been aligned.
     logging.info("BWA alignment complete!!!")
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, 
-    format='[%(levelname)s]-%(asctime)s:::%(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S')
-    ref_genome = 'ref_genome/dgorgon_reference.fa'
-    index_ref_genome(ref_genome)
-    check_index_success(ref_genome)
-    f_files = pull_fastq_files()
-    execute_alignment(ref_genome,f_files)
